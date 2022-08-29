@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Sport",
+    "slug": "sport",
+    "description": "Articles on sport"
+  },
+  {
+    "name": "Food",
+    "slug": "food",
+    "description": "Articles on food"
+  },
+  {
+    "name": "News",
+    "slug": "news",
+    "description": "Articles on news"
+  }
+]
