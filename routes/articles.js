@@ -52,6 +52,7 @@ app.post(
 
     if (errors.length > 0) {
       res.status(400).json(errors);
+      return;
     }
 
     fs.readFile(file, (err, data) => {

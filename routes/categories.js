@@ -62,8 +62,6 @@ app.get("/:slug", checkIfExists, (req, res) => {
   });
 });
 
-// -> créer une catégorie
-//        -> validation name, description
 app.post(
   "/",
   body("name")
@@ -79,6 +77,7 @@ app.post(
 
     if (errors) {
       res.status(400).json(errors);
+      return;
     }
 
     const category = {
