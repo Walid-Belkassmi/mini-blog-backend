@@ -1,43 +1,101 @@
 const express = require("express");
 const app = express();
 const fs = require("fs");
-const { ifCategorieExist } = require("../middlewares/categories");
+const file = "./data/categories.json";
+const {
+  checkIfExists,
+  checkDoesNotExists,
+} = require("../middlewares/categories");
 const { body, validationResult } = require("express-validator");
 
+// -> afficher les categories
+//        -> get '/categories'
 app.get("/", (req, res) => {
-  fs.readFile("./categories.json", (err, data) => {
+  fs.readFile(file, (err, data) => {
     if (err) {
-      console.log(err);
+      res.status(500).json("Internal server error");
     } else {
-      const response = JSON.parse(data.toString());
-      res.json(response);
+      const categories = JSON.parse(data.toString());
+      res.json(categories);
     }
   });
 });
 
+// -> afficher une seule catégorie, qui renvoie aussi tous les articles correspondant
+//        -> get '/categories/:slug'
+//        -> middleware checkIfExists
+app.get("/:slug", checkIfExists, (req, res) => {
+  // Plus lisible
+  const category = {
+    name: req.category.name,
+    slug: req.category.slug,
+    description: req.category.description,
+    articles: [],
+  };
+  // Deconstruction
+  // const { name, slug, description }
+  // const category = {
+  //   name,
+  //   slug,
+  //   description,
+  //   articles: []
+  // }
+
+  // Clone
+  // const category = {
+  //   ...req.category
+  //   articles: []
+  // }
+
+  fs.readFile("./data/articles.json", (err, data) => {
+    if (err) {
+      res.status(500).json("Internal server error");
+    } else {
+      const articles = JSON.parse(data.toString());
+      const filteredArticles = articles.filter(
+        (article) => article.category === category.slug
+      );
+      category.articles = filteredArticles;
+
+      res.json(category);
+    }
+  });
+});
+
+// -> créer une catégorie
+//        -> validation name, description
 app.post(
   "/",
-  ifCategorieExist,
-  body("Name")
-    .isLength({ min: 6, max: 20 })
-    .withMessage("Incorrect length, min 6 and max 20"),
-  body("Description").exists().withMessage("Missing description"),
+  body("name")
+    .isLength({ min: 4 })
+    .withMessage("Category name must be 4 chars minimum"),
+  body("description")
+    .isLength({ min: 20 })
+    .withMessage("Category description must be 20 chars minimum"),
+  checkDoesNotExists,
   (req, res) => {
     const { errors } = validationResult(req);
+    console.log(errors);
 
-    if (errors.length > 0) {
+    if (errors) {
       res.status(400).json(errors);
-    } else {
-      req.categories.push(req.categorie);
-      fs.writeFile(
-        "./categories.json",
-        JSON.stringify(req.categories),
-        (err) => {
-          console.log(err);
-        }
-      );
-      res.json("ok");
     }
+
+    const category = {
+      name: req.body.name,
+      description: req.body.description,
+      slug: req.categorySlug,
+    };
+
+    const categories = [...req.categories, category];
+
+    fs.writeFile(file, JSON.stringify(categories), (err) => {
+      if (err) {
+        res.status(500).json("Internal server error");
+      } else {
+        res.json(category);
+      }
+    });
   }
 );
 

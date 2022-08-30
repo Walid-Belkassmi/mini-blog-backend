@@ -1,54 +1,73 @@
 const fs = require("fs");
-const moment = require("moment");
 const slugify = require("slugify");
 
-const ifArticleExist = (req, res, next) => {
+const file = "./data/articles.json";
+
+const checkIfExists = (req, res, next) => {
   const { slug } = req.params;
-  const Slug = slugify(req.body.Titre, { lower: true });
-  fs.readFile("./articles.json", (err, data) => {
+
+  fs.readFile(file, (err, data) => {
     if (err) {
-      console.log(err);
-      return;
+      res.status(500).json("Internal server error");
     } else {
-      const response = JSON.parse(data.toString());
-      const articleExist = response.find((res) => res.Slug === Slug);
+      const articles = JSON.parse(data.toString());
+      const article = articles.find((article) => article.slug === slug);
 
-      if (articleExist) {
-        res.status(409).json("article exist");
-      } else {
-        req.articles = response;
-        req.article = {
-          ...req.body,
-          Slug,
-          Date: moment().format(),
-          Categorie: slug,
-        };
-      }
-
-      next();
-    }
-  });
-};
-
-const ifCategorieExist = (req, res, next) => {
-  const { slug } = req.params;
-  fs.readFile("./categories.json", (err, data) => {
-    if (err) {
-      console.log(err);
-      return;
-    } else {
-      const response = JSON.parse(data.toString());
-      const categorieExist = response.find((res) => res.Slug === slug);
-      if (categorieExist) {
+      if (article) {
+        req.article = article;
         next();
       } else {
-        res.status(404).json("Categorie not found");
+        res.status(404).json("Article not found");
       }
     }
   });
 };
 
+const checkIfNotExist = (req, res, next) => {
+  const slug = slugify(req.body.title, { lower: true });
+
+  fs.readFile(file, (err, data) => {
+    if (err) {
+      res.status(500).json("Internal server error");
+    } else {
+      const articles = JSON.parse(data.toString());
+      const article = articles.find((article) => article.slug === slug);
+
+      if (!article) {
+        req.articleSlug = slug;
+        next();
+      } else {
+        res.status(409).json("Article already exists");
+      }
+    }
+  });
+};
+
+const checkIfCategoryIsValid = (req, res, next) => {
+  const categorySlug = req.body.category;
+
+  fs.readFile("./data/categories.json", (err, data) => {
+    if (err) {
+      res.status(500).json("Internal server error");
+    } else {
+      const categories = JSON.parse(data.toString());
+      const category = categories.find(
+        (category) => category.slug === categorySlug
+      );
+
+      if (category) {
+        next();
+      } else {
+        res.status(404).json("Category not found");
+      }
+    }
+  });
+};
+
+// middleware checkDoesNotExists, checkCategoryValid
+
 module.exports = {
-  ifArticleExist,
-  ifCategorieExist,
+  checkIfExists,
+  checkIfNotExist,
+  checkIfCategoryIsValid,
 };
